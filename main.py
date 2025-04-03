@@ -9,7 +9,7 @@ conn = psycopg2.connect(
     user="postgres",
     password=os.getenv("DB_PASSWORD"),
     host="localhost",
-    port="5432",
+    port="4000",
 )
 cur = conn.cursor()
 print("Connected")
@@ -31,20 +31,27 @@ if response.status_code == 200:
         glide = disc.get("glide", 0)
         turn = disc.get("turn", 0)
         fade = disc.get("fade", 0)
+        print(name)
+        print(brand)
+        print(speed)
+        print(glide)
+        print(fade)
 
         # Insert into PostgreSQL
         insert_query = """
         INSERT INTO discs (name, brand, speed, glide, turn, fade)
         VALUES (%s, %s, %s, %s, %s, %s)
-        ON CONFLICT (name) DO NOTHING;  -- Prevent duplicates
         """
 
         try:
             cur.execute(insert_query, (name, brand, speed, glide, turn, fade))
             conn.commit()
             print(f"Added {name} to database.")
-        except Exception as e:
+        except psycopg2.Error as e:
+            conn.rollback()  # Rollback to avoid broken transactions
+
             print(f"Error inserting {name}: {e}")
+
 
 else:
     print("Failed to fetch data from the API.")
