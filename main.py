@@ -2,40 +2,55 @@ import os
 
 import psycopg2
 import requests
-from bs4 import BeautifulSoup
 
-# Database connection using environment variable for password
+# Database connection
 conn = psycopg2.connect(
     dbname="Discs",
+    user="postgres",
+    password=os.getenv("DB_PASSWORD"),
     host="localhost",
-    port="4000",
+    port="5432",
 )
 cur = conn.cursor()
+print("Connected")
 
-# Sample data for testing
-name = "Destroyer"
-brand = "Innova"
-speed = 12
-glide = 5
-turn = -1
-fade = 3
+# API endpoint for discs
+API_URL = "https://discit-api.fly.dev/disc"
 
-# Insert into PostgreSQL
-insert_query = """
-INSERT INTO discs (name, brand, speed, glide, turn, fade)
-VALUES (%s, %s, %s, %s, %s, %s)
-"""
+# Fetch the disc data
+response = requests.get(API_URL)
 
-try:
-    cur.execute(insert_query, (name, brand, speed, glide, turn, fade))
-    conn.commit()  # Commit the transaction
-    print(f"Added {name} to database.")
-except Exception as e:
-    print(f"Error inserting {name}: {e}")
+if response.status_code == 200:
+    data = response.json()  # Assuming the data is in JSON format
 
-# Fetch and print inserted data to verify
-# Close the connection
+    for disc in data:
+        # Extract relevant disc information
+        name = disc.get("name", "Unknown")
+        brand = disc.get("brand", "Unknown")
+        speed = disc.get("speed", 0)
+        glide = disc.get("glide", 0)
+        turn = disc.get("turn", 0)
+        fade = disc.get("fade", 0)
+
+        # Insert into PostgreSQL
+        insert_query = """
+        INSERT INTO discs (name, brand, speed, glide, turn, fade)
+        VALUES (%s, %s, %s, %s, %s, %s)
+        ON CONFLICT (name) DO NOTHING;  -- Prevent duplicates
+        """
+
+        try:
+            cur.execute(insert_query, (name, brand, speed, glide, turn, fade))
+            conn.commit()
+            print(f"Added {name} to database.")
+        except Exception as e:
+            print(f"Error inserting {name}: {e}")
+
+else:
+    print("Failed to fetch data from the API.")
+
+# Close connection
 cur.close()
 conn.close()
 
-print("Database test complete.")
+print("Data insertion complete.")
