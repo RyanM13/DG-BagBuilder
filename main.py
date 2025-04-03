@@ -7,8 +7,6 @@ from bs4 import BeautifulSoup
 # Database connection using environment variable for password
 conn = psycopg2.connect(
     dbname="Discs",
-    user="postgres",
-    password="MSUCOLT!",
     host="localhost",
     port="4000",
 )
@@ -41,4 +39,3 @@ cur.close()
 conn.close()
 
 print("Database test complete.")
-
